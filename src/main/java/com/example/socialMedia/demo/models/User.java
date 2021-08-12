@@ -1,10 +1,7 @@
 package com.example.socialMedia.demo.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.util.List;
@@ -13,23 +10,34 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode
 @Entity
 public class User {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
     int id ;
 
+    @Column(unique = true)
     String username ;
+
     String password ;
 
-    @OneToMany()
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
     @JsonIgnore
     List<Post> posts ;
 
     @ManyToMany
-    List<GroupOfUsers> groupsOfUsers;
+    @JsonIgnore
+    List<GroupOfUsers> groups;
+
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
+    @JsonIgnore
+    List<GroupOfUsers> groupsAdminInIt;
+
+    @OneToMany(orphanRemoval = true, cascade = CascadeType.ALL)
+    @JsonIgnore
+    List<Comment> commentsWriteIt;
 
     boolean isAdmin ;
-
 }

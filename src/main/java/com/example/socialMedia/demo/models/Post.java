@@ -1,10 +1,10 @@
 package com.example.socialMedia.demo.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.sun.istack.NotNull;
+import lombok.*;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 import javax.persistence.*;
 import java.util.List;
@@ -14,9 +14,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@EqualsAndHashCode
 public class Post {
-    @Id
-    @GeneratedValue
+    @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
     int id;
 
     String tittle;
@@ -26,12 +26,12 @@ public class Post {
     boolean isAccepted;
 
     @ManyToOne()
-    @JoinColumn(name="id", referencedColumnName = "id", insertable = false, updatable = false)
-    @JsonIgnore
+    @NotNull
+    @JoinColumn(nullable = false)
     User writer;
 
     @ManyToOne()
-    @JoinColumn(name="id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JoinColumn(nullable = true)
     GroupOfUsers groupOfUsers;
 
     @OneToMany()

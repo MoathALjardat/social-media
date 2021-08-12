@@ -2,10 +2,10 @@ package com.example.socialMedia.demo.models;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.sun.istack.NotNull;
+import lombok.*;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 import javax.persistence.*;
 
@@ -14,19 +14,21 @@ import javax.persistence.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@EqualsAndHashCode
 public class Comment {
-    @Id
-    @GeneratedValue
+    @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
     int id ;
 
     String body ;
 
     @ManyToOne()
-    @JoinColumn(name="id", referencedColumnName = "id", insertable = false, updatable = false)
+    @NotNull
+    @JoinColumn(nullable = false)
     Post post ;
 
     @ManyToOne()
-    @JoinColumn(name="id", referencedColumnName = "id", insertable = false, updatable = false)
+    @NotNull
+    @JoinColumn(nullable = false)
     User writer ;
 
 }
