@@ -38,6 +38,6 @@ public class GroupOfUsers {
     @JsonIgnore
     List<User> waitingListOfUsers ;
 
-    boolean isAccepted ;
+    Status status ;
 
 }

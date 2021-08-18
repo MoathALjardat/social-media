@@ -39,5 +39,5 @@ public class User {
     @JsonIgnore
     List<Comment> commentsWriteIt;
 
-    boolean isAdmin ;
+    UserType userType ;
 }

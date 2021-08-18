@@ -1,13 +1,13 @@
 package com.example.socialMedia.demo.controllers;
 
-import com.example.socialMedia.demo.models.GroupOfUsers;
-import com.example.socialMedia.demo.models.Post;
-import com.example.socialMedia.demo.models.User;
+import com.example.socialMedia.demo.models.*;
 import com.example.socialMedia.demo.services.GroupService;
 import com.example.socialMedia.demo.services.PostService;
 import com.example.socialMedia.demo.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,25 +24,33 @@ public class AdminController {
     private GroupService groupService;
 
 
-    @PostMapping
+    @PostMapping("/admin")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
-    public User addUser(@RequestBody User user) {
+    public User addAdminUser(@RequestBody User user) {
+        user.setUserType(UserType.ADMIN);
         return userService.addUser(user);
     }
 
-    @GetMapping
+    @PostMapping("/normal")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    public User addNormalUser(@RequestBody User user) {
+        user.setUserType(UserType.NORMAL);
+        return userService.addUser(user);
+    }
+
+    @GetMapping("/users")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public List<User> getUsers() {
         return userService.getUsers();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/users/{id}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public User getUserById(@PathVariable int id) {
         return userService.getUserById(id);
     }
 
-    @GetMapping("/count")
+    @GetMapping("/users/count")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public int getNumberOfUsers() {
         return userService.getNumberOfUsers();
@@ -54,7 +62,7 @@ public class AdminController {
         return userService.updateUser(user);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/users/{id}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public User deleteUser(@PathVariable int id) {
         return userService.deleteUser(id);
@@ -67,7 +75,9 @@ public class AdminController {
         if (group == null)
             return false;
 
-        group.setAccepted(true);
+        group.setStatus(Status.ACCEPTED);
+
+        groupService.updateGroup(group);
         return true;
     }
 
@@ -78,7 +88,9 @@ public class AdminController {
         if (post == null)
             return false;
 
-        post.setAccepted(true);
+        post.setStatus(Status.ACCEPTED);
+        postService.updatePost(post);
         return true;
     }
+
 }

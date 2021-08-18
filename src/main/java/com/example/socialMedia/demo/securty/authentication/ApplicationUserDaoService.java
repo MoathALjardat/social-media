@@ -2,6 +2,7 @@ package com.example.socialMedia.demo.securty.authentication;
 
 
 import com.example.socialMedia.demo.models.User;
+import com.example.socialMedia.demo.models.UserType;
 import com.example.socialMedia.demo.repositories.UserRepository;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,13 +16,13 @@ import static com.example.socialMedia.demo.securty.ApplicationUserRole.ADMIN;
 import static com.example.socialMedia.demo.securty.ApplicationUserRole.NORMAL;
 
 @Repository("fake")
-public class FakeApplicationUserDaoService implements ApplicationUserDao {
+public class ApplicationUserDaoService implements ApplicationUserDao {
     private final PasswordEncoder passwordEncoder;
     @Autowired
     UserRepository userRepository;
 
     @Autowired
-    public FakeApplicationUserDaoService(PasswordEncoder passwordEncoder) {
+    public ApplicationUserDaoService(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -47,7 +48,7 @@ public class FakeApplicationUserDaoService implements ApplicationUserDao {
         );
 
         for (User user : users) {
-            if (!user.isAdmin()) {
+            if (user.getUserType().equals(UserType.NORMAL)) {
                 appUsers.add(new ApplicationUser(
                         NORMAL.getGrantedAuthorities(),
                         true, true, true, true,
@@ -55,7 +56,7 @@ public class FakeApplicationUserDaoService implements ApplicationUserDao {
                         passwordEncoder.encode(user.getPassword() + "")
 
                 ));
-            } else {
+            } else if(user.getUserType().equals(UserType.ADMIN)) {
                 appUsers.add(
                         new ApplicationUser(
                                 ADMIN.getGrantedAuthorities(),

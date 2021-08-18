@@ -22,8 +22,8 @@ public class Post {
     String tittle;
     String body;
 
-    boolean isPrivate;
-    boolean isAccepted;
+    PostType type;
+    Status status;
 
     @ManyToOne()
     @NotNull

@@ -1,9 +1,6 @@
 package com.example.socialMedia.demo.controllers;
 
-import com.example.socialMedia.demo.models.Comment;
-import com.example.socialMedia.demo.models.GroupOfUsers;
-import com.example.socialMedia.demo.models.Post;
-import com.example.socialMedia.demo.models.User;
+import com.example.socialMedia.demo.models.*;
 import com.example.socialMedia.demo.services.CommentService;
 import com.example.socialMedia.demo.services.GroupService;
 import com.example.socialMedia.demo.services.PostService;
@@ -13,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/normal")
@@ -27,13 +25,12 @@ public class UserController {
     @Autowired
     private CommentService commentService;
 
-
     @PreAuthorize("hasAnyRole('ROLE_NORMAL')")
-    @PostMapping("/addPrivatePost/{groupId}")
+    @PostMapping("/addPrivatePost/{groupId}") // for a user in the group
     public Post addPrivatePost(@RequestBody Post post, @PathVariable int groupId) {
 
         GroupOfUsers group = groupService.getGroupById(groupId);
-        User writer = userService.getUserById(1);
+        User writer = userService.getCurrentUser();
 
         if (post == null || writer == null || group == null)
             return null;
@@ -42,7 +39,8 @@ public class UserController {
             return null;
 
         post.setWriter(writer);
-        post.setPrivate(true);
+        post.setType(PostType.PRIVATE);
+        post.setStatus(Status.WAITING);
 
         writer.getPosts().add(post);
         group.getPosts().add(post);
@@ -55,16 +53,18 @@ public class UserController {
     }
 
     @PreAuthorize("hasAnyRole('ROLE_NORMAL')")
-    @PostMapping("/addPublicPost")
+    @PostMapping("/addPublicPost") // for any user
     public Post addPublicPost(@RequestBody Post post) {
-        User writer = userService.getUserById(1);
+
+        User writer = userService.getCurrentUser();
 
         if (post == null || writer == null)
             return null;
 
         post.setGroupOfUsers(null);
         post.setWriter(writer);
-        post.setPrivate(true);
+        post.setType(PostType.PUBLIC);
+        post.setStatus(Status.WAITING);
 
         writer.getPosts().add(post);
 
@@ -75,9 +75,9 @@ public class UserController {
     }
 
     @PreAuthorize("hasAnyRole('ROLE_NORMAL')")
-    @GetMapping("/joinToGroup/{groupId}")
+    @GetMapping("/joinToGroup/{groupId}") // for any user
     public boolean joinToGroup(@PathVariable int groupId) {
-        User user = userService.getUserById(2);
+        User user = userService.getCurrentUser();
         GroupOfUsers group = groupService.getGroupById(groupId);
 
         if (group == null || user == null)
@@ -92,15 +92,15 @@ public class UserController {
     }
 
     @PreAuthorize("hasAnyRole('ROLE_NORMAL')")
-    @PostMapping("/addGroup")
+    @PostMapping("/addGroup") // for any user
     public boolean addGroup(@RequestBody GroupOfUsers group) {
-        User groupAdmin = userService.getUserById(1);
+        User groupAdmin = userService.getCurrentUser();
 
         if (group == null || groupAdmin == null)
             return false;
 
         group.setGroupAdmin(groupAdmin);
-        group.setAccepted(false);
+        group.setStatus(Status.WAITING);
 
         groupAdmin.getGroupsAdminInIt().add(group);
 
@@ -111,9 +111,11 @@ public class UserController {
     }
 
     @PreAuthorize("hasAnyRole('ROLE_NORMAL')")
-    @PostMapping("/addComment/{postId}")
+    @PostMapping("/addComment/{postId}") // a user can see the post
     public boolean addComment(@RequestBody Comment comment, @PathVariable int postId) {
-        User writer = userService.getUserById(1);
+
+        User writer = userService.getCurrentUser();
+
         Post post = postService.getPostById(postId);
 
         if (post == null || writer == null || comment == null)
@@ -131,33 +133,38 @@ public class UserController {
         return true;
     }
 
-
     @GetMapping("acceptPrivatePost/{postId}")
-    @PreAuthorize("hasAnyRole('ROLE_NORMAL')")
+    @PreAuthorize("hasAnyRole('ROLE_NORMAL')") // admin of the group
     public boolean acceptPrivatePost(@PathVariable int postId) {
-        User adminGroup = userService.getUserById(1);
+
+        User groupAdmin = userService.getCurrentUser();
 
         Post post = postService.getPostById(postId);
         if (post == null)
             return false;
 
-        if (post.getGroupOfUsers() == null || !post.getGroupOfUsers().getGroupAdmin().equals(adminGroup))
+        if (post.getGroupOfUsers() == null || !post.getGroupOfUsers().getGroupAdmin().equals(groupAdmin))
             return false;
 
-        post.setAccepted(true);
+        post.setStatus(Status.ACCEPTED);
+        postService.updatePost(post);
+
         return true;
     }
 
     @GetMapping("acceptJoiningGroup/{groupId}/{userId}")
-    @PreAuthorize("hasAnyRole('ROLE_NORMAL')")
+    @PreAuthorize("hasAnyRole('ROLE_NORMAL')") // admin of the group
     public boolean acceptJoiningGroup(@PathVariable int groupId, @PathVariable int userId) {
 
-        User groupAdmin = userService.getUserById(1);
+        User groupAdmin = userService.getCurrentUser();
 
         User waitingUser = userService.getUserById(userId);
         GroupOfUsers group = groupService.getGroupById(groupId);
 
-        if (group == null || waitingUser == null)
+        if (group == null || waitingUser == null || groupAdmin == null)
+            return false;
+
+        if (!groupAdmin.equals(group.getGroupAdmin()))
             return false;
 
         if (!group.getWaitingListOfUsers().contains(waitingUser))
@@ -171,6 +178,31 @@ public class UserController {
         groupService.updateGroup(group);
         userService.updateUser(waitingUser);
         return true;
+    }
+
+    @GetMapping("/publicPosts")
+    @PreAuthorize("hasAnyRole('ROLE_NORMAL')") // a user int the group
+    public List<Post> getAllPublicPosts() {
+
+        List<Post> posts = postService.getPosts();
+
+        posts = posts.stream().filter(post -> post.getType().equals(PostType.PUBLIC)).collect(Collectors.toList());
+
+        return posts;
+    }
+
+    @GetMapping("/privatePosts/{groupId}")
+    @PreAuthorize("hasAnyRole('ROLE_NORMAL')") // a user int the group
+    public List<Post> getPrivatePostsForAGroup(@PathVariable int groupId) {
+
+        GroupOfUsers group = groupService.getGroupById(groupId);
+
+        if (!group.getUsers().contains(userService.getCurrentUser()))
+            return null;
+
+        List<Post> posts = group.getPosts();
+
+        return posts;
     }
 
 }
